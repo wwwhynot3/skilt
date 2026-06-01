@@ -214,9 +214,33 @@ test_list_verbose_prints_descriptions() {
   "$SCRIPT" list modules --verbose >/tmp/skilt-list-modules-verbose.out
   "$SCRIPT" list profiles --verbose >/tmp/skilt-list-profiles-verbose.out
 
-  grep -q $'^design-html\tCreate or refine HTML-first interface designs\\.$' /tmp/skilt-list-skills-verbose.out || fail "skills verbose list should include descriptions"
-  grep -q $'^design\tDesign-oriented skills for UI and review work\\.$' /tmp/skilt-list-modules-verbose.out || fail "modules verbose list should include descriptions"
-  grep -q $'^design-html\tCreate or refine HTML-first interface designs\\.$' /tmp/skilt-list-modules-verbose.out || fail "modules verbose list should keep implicit self-modules with skill descriptions"
+  cat >/tmp/skilt-list-skills-verbose.expected <<'EOF'
+design-html	Create or refine HTML-first interface designs.
+investigate	Investigate code paths and isolate likely root causes.
+ios-qa	Review iOS flows and QA edge cases.
+office-hours	Generate product-facing guidance for stakeholder discussions.
+ship	Drive release and deployment execution steps.
+EOF
+  sort /tmp/skilt-list-skills-verbose.out >/tmp/skilt-list-skills-verbose.sorted
+  sort /tmp/skilt-list-skills-verbose.expected >/tmp/skilt-list-skills-verbose.expected.sorted
+  cmp -s /tmp/skilt-list-skills-verbose.sorted /tmp/skilt-list-skills-verbose.expected.sorted || fail "skills verbose list should match the full described skill set"
+
+  cat >/tmp/skilt-list-modules-verbose.expected <<'EOF'
+core	Core debugging and diagnosis workflows.
+design	Design-oriented skills for UI and review work.
+design-html	Create or refine HTML-first interface designs.
+deploy	Deployment and release execution skills.
+investigate	Investigate code paths and isolate likely root causes.
+ios	iOS-focused implementation and QA support.
+ios-qa	Review iOS flows and QA edge cases.
+office-hours	Generate product-facing guidance for stakeholder discussions.
+product	Product planning and stakeholder communication support.
+ship	Drive release and deployment execution steps.
+EOF
+  sort /tmp/skilt-list-modules-verbose.out >/tmp/skilt-list-modules-verbose.sorted
+  sort /tmp/skilt-list-modules-verbose.expected >/tmp/skilt-list-modules-verbose.expected.sorted
+  cmp -s /tmp/skilt-list-modules-verbose.sorted /tmp/skilt-list-modules-verbose.expected.sorted || fail "modules verbose list should match the full explicit and implicit module set"
+
   grep -q $'^backend-indie\tLean backend-focused workflow with debugging, product, and ship support\\.$' /tmp/skilt-list-profiles-verbose.out || fail "profiles verbose list should include descriptions"
   grep -q $'^gui-stage\tGUI-building workflow with product and design support\\.$' /tmp/skilt-list-profiles-verbose.out || fail "profiles verbose list should include gui-stage"
   [ "$(wc -l </tmp/skilt-list-profiles-verbose.out)" -eq 2 ] || fail "profiles verbose list should print each logical profile once"
@@ -230,6 +254,18 @@ test_list_verbose_rejects_agents() {
   fi
 
   grep -q "^ERROR list --verbose only supports modules profiles skills$" /tmp/skilt-list-agents-verbose.out || fail "agents verbose rejection should explain supported entities"
+}
+
+test_list_verbose_errors_when_skill_description_is_missing() {
+  setup_fixture
+
+  printf 'malformed-skill\n' >>"$TEST_CONFIG/skills.tsv"
+
+  if "$SCRIPT" list skills --verbose >/tmp/skilt-list-skills-missing-description.out 2>&1; then
+    fail "skills verbose list should fail when a description is missing"
+  fi
+
+  grep -q "^ERROR missing description for skill: malformed-skill$" /tmp/skilt-list-skills-missing-description.out || fail "skills verbose list should report missing skill descriptions"
 }
 
 test_doctor_rejects_inconsistent_module_descriptions() {
@@ -294,6 +330,7 @@ test_doctor_rejects_skill_without_description
 test_list_commands_include_config_entities
 test_list_verbose_prints_descriptions
 test_list_verbose_rejects_agents
+test_list_verbose_errors_when_skill_description_is_missing
 test_doctor_rejects_inconsistent_module_descriptions
 test_doctor_rejects_inconsistent_profile_descriptions
 test_count_reports_config_install_and_agent_totals
