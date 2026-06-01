@@ -268,6 +268,30 @@ test_list_verbose_errors_when_skill_description_is_missing() {
   grep -q "^ERROR missing description for skill: malformed-skill$" /tmp/skilt-list-skills-missing-description.out || fail "skills verbose list should report missing skill descriptions"
 }
 
+test_list_verbose_errors_when_module_description_is_missing() {
+  setup_fixture
+
+  printf 'malformed-module\tinvestigate\t\n' >>"$TEST_CONFIG/modules.tsv"
+
+  if "$SCRIPT" list modules --verbose >/tmp/skilt-list-modules-missing-description.out 2>&1; then
+    fail "modules verbose list should fail when a description is missing"
+  fi
+
+  grep -q "^ERROR missing description for module: malformed-module$" /tmp/skilt-list-modules-missing-description.out || fail "modules verbose list should report missing module descriptions"
+}
+
+test_list_verbose_errors_when_profile_description_is_missing() {
+  setup_fixture
+
+  printf 'malformed-profile\tcore\t\n' >>"$TEST_CONFIG/profiles.tsv"
+
+  if "$SCRIPT" list profiles --verbose >/tmp/skilt-list-profiles-missing-description.out 2>&1; then
+    fail "profiles verbose list should fail when a description is missing"
+  fi
+
+  grep -q "^ERROR missing description for profile: malformed-profile$" /tmp/skilt-list-profiles-missing-description.out || fail "profiles verbose list should report missing profile descriptions"
+}
+
 test_doctor_rejects_inconsistent_module_descriptions() {
   setup_fixture
 
@@ -331,6 +355,8 @@ test_list_commands_include_config_entities
 test_list_verbose_prints_descriptions
 test_list_verbose_rejects_agents
 test_list_verbose_errors_when_skill_description_is_missing
+test_list_verbose_errors_when_module_description_is_missing
+test_list_verbose_errors_when_profile_description_is_missing
 test_doctor_rejects_inconsistent_module_descriptions
 test_doctor_rejects_inconsistent_profile_descriptions
 test_count_reports_config_install_and_agent_totals
