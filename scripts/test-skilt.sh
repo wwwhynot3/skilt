@@ -215,18 +215,52 @@ test_list_commands_include_config_entities() {
   "$SCRIPT" list profiles >/tmp/skilt-list-profiles.out
   "$SCRIPT" list skills >/tmp/skilt-list-skills.out
 
-  grep -q "^codex$" /tmp/skilt-list-agents.out || fail "agents list should include codex"
-  grep -q "^design$" /tmp/skilt-list-modules.out || fail "modules list should include design"
-  grep -q "^backend-indie$" /tmp/skilt-list-profiles.out || fail "profiles list should include backend-indie"
-  grep -q "^design-html$" /tmp/skilt-list-skills.out || fail "skills list should include design-html"
+  cat >/tmp/skilt-list-agents.expected <<'EOF'
+claude
+codex
+opencode
+EOF
+  cmp -s /tmp/skilt-list-agents.out /tmp/skilt-list-agents.expected || fail "agents list should keep the current single-column output"
+
+  cat >/tmp/skilt-list-modules.expected <<'EOF'
+core
+design
+design-html
+deploy
+investigate
+ios
+ios-qa
+office-hours
+product
+ship
+EOF
+  cmp -s /tmp/skilt-list-modules.out /tmp/skilt-list-modules.expected || fail "modules list should keep the current explicit and implicit module output"
+
+  cat >/tmp/skilt-list-profiles.expected <<'EOF'
+backend-indie
+gui-stage
+EOF
+  cmp -s /tmp/skilt-list-profiles.out /tmp/skilt-list-profiles.expected || fail "profiles list should keep the current single-column output"
+
+  cat >/tmp/skilt-list-skills.expected <<'EOF'
+design-html
+investigate
+ios-qa
+office-hours
+ship
+EOF
+  cmp -s /tmp/skilt-list-skills.out /tmp/skilt-list-skills.expected || fail "skills list should keep the current single-column output"
 }
 
 test_list_verbose_prints_descriptions() {
   setup_fixture
 
   "$SCRIPT" list skills --verbose >/tmp/skilt-list-skills-verbose.out
-  "$SCRIPT" list modules -v >/tmp/skilt-list-modules-verbose.out
-  "$SCRIPT" list profiles -v >/tmp/skilt-list-profiles-verbose.out
+  "$SCRIPT" list skills -v >/tmp/skilt-list-skills-short-verbose.out
+  "$SCRIPT" list modules --verbose >/tmp/skilt-list-modules-verbose.out
+  "$SCRIPT" list modules -v >/tmp/skilt-list-modules-short-verbose.out
+  "$SCRIPT" list profiles --verbose >/tmp/skilt-list-profiles-verbose.out
+  "$SCRIPT" list profiles -v >/tmp/skilt-list-profiles-short-verbose.out
 
   cat >/tmp/skilt-list-skills-verbose.expected <<'EOF'
 design-html	Create or refine HTML-first interface designs.
@@ -235,6 +269,7 @@ ios-qa	Review iOS flows and QA edge cases.
 office-hours	Generate product-facing guidance for stakeholder discussions.
 ship	Drive release and deployment execution steps.
 EOF
+  cmp -s /tmp/skilt-list-skills-verbose.out /tmp/skilt-list-skills-short-verbose.out || fail "skills verbose flag spellings should produce identical output"
   sort /tmp/skilt-list-skills-verbose.out >/tmp/skilt-list-skills-verbose.sorted
   sort /tmp/skilt-list-skills-verbose.expected >/tmp/skilt-list-skills-verbose.expected.sorted
   cmp -s /tmp/skilt-list-skills-verbose.sorted /tmp/skilt-list-skills-verbose.expected.sorted || fail "skills verbose list should match the full described skill set"
@@ -251,13 +286,17 @@ office-hours	Generate product-facing guidance for stakeholder discussions.
 product	Product planning and stakeholder communication support.
 ship	Drive release and deployment execution steps.
 EOF
+  cmp -s /tmp/skilt-list-modules-verbose.out /tmp/skilt-list-modules-short-verbose.out || fail "modules verbose flag spellings should produce identical output"
   sort /tmp/skilt-list-modules-verbose.out >/tmp/skilt-list-modules-verbose.sorted
   sort /tmp/skilt-list-modules-verbose.expected >/tmp/skilt-list-modules-verbose.expected.sorted
   cmp -s /tmp/skilt-list-modules-verbose.sorted /tmp/skilt-list-modules-verbose.expected.sorted || fail "modules verbose list should match the full explicit and implicit module set"
 
-  grep -q $'^backend-indie\tLean backend-focused workflow with debugging, product, and ship support\\.$' /tmp/skilt-list-profiles-verbose.out || fail "profiles verbose list should include descriptions"
-  grep -q $'^gui-stage\tGUI-building workflow with product and design support\\.$' /tmp/skilt-list-profiles-verbose.out || fail "profiles verbose list should include gui-stage"
-  [ "$(wc -l </tmp/skilt-list-profiles-verbose.out)" -eq 2 ] || fail "profiles verbose list should print each logical profile once"
+  cat >/tmp/skilt-list-profiles-verbose.expected <<'EOF'
+backend-indie	Lean backend-focused workflow with debugging, product, and ship support.
+gui-stage	GUI-building workflow with product and design support.
+EOF
+  cmp -s /tmp/skilt-list-profiles-verbose.out /tmp/skilt-list-profiles-short-verbose.out || fail "profiles verbose flag spellings should produce identical output"
+  cmp -s /tmp/skilt-list-profiles-verbose.out /tmp/skilt-list-profiles-verbose.expected || fail "profiles verbose list should print each logical profile once with descriptions"
 }
 
 test_list_verbose_rejects_agents() {
