@@ -10,6 +10,7 @@ DRY_RUN="false"
 LIST_VERBOSE="false"
 LIST_ENTITY=""
 DESCRIPTION_VALUE=""
+DESCRIPTION_ERROR=""
 
 usage() {
   cat <<'EOF'
@@ -92,22 +93,29 @@ lookup_description() {
   local file="$1"
   local name="$2"
   local column="$3"
+  local status=0
 
-  if ! DESCRIPTION_VALUE="$(
+  DESCRIPTION_VALUE=""
+  DESCRIPTION_ERROR=""
+
+  DESCRIPTION_VALUE="$(
     awk -F '\t' -v name="$name" -v column="$column" '
       NF && $1 !~ /^#/ && $1 == name {
         found=1
         if ($column == "") {
-          bad=1
-          exit
-        }
-        if (description == "") {
+          missing=1
+        } else if (description == "") {
           description=$column
+        } else if ($column != description) {
+          inconsistent=1
         }
       }
       END {
-        if (bad) {
+        if (missing) {
           exit 2
+        }
+        if (inconsistent) {
+          exit 3
         }
         if (!found) {
           exit 1
@@ -115,40 +123,71 @@ lookup_description() {
         print description
       }
     ' "$(config_file "$file")"
-  )"; then
-    return 1
-  fi
+  )" || status=$?
+
+  case "$status" in
+    0)
+      return 0
+      ;;
+    3)
+      DESCRIPTION_ERROR="inconsistent"
+      return 1
+      ;;
+    *)
+      DESCRIPTION_ERROR="missing"
+      return 1
+      ;;
+  esac
 }
 
 description_for_skill() {
   local skill="$1"
 
-  lookup_description skills.tsv "$skill" 2 || die "missing description for skill: $skill"
+  if ! lookup_description skills.tsv "$skill" 2; then
+    if [ "$DESCRIPTION_ERROR" = "inconsistent" ]; then
+      die "inconsistent description for skill: $skill"
+    fi
+    die "missing description for skill: $skill"
+  fi
 }
 
 description_for_module() {
   local module="$1"
 
-  lookup_description modules.tsv "$module" 3 || die "missing description for module: $module"
+  if ! lookup_description modules.tsv "$module" 3; then
+    if [ "$DESCRIPTION_ERROR" = "inconsistent" ]; then
+      die "inconsistent description for module: $module"
+    fi
+    die "missing description for module: $module"
+  fi
 }
 
 description_for_profile() {
   local profile="$1"
 
-  lookup_description profiles.tsv "$profile" 3 || die "missing description for profile: $profile"
+  if ! lookup_description profiles.tsv "$profile" 3; then
+    if [ "$DESCRIPTION_ERROR" = "inconsistent" ]; then
+      die "inconsistent description for profile: $profile"
+    fi
+    die "missing description for profile: $profile"
+  fi
 }
 
 list_skills_verbose() {
   local skill
+  local output=""
 
   while IFS= read -r skill; do
     description_for_skill "$skill"
-    printf '%s\t%s\n' "$skill" "$DESCRIPTION_VALUE"
+    printf -v output '%s%s\t%s\n' "$output" "$skill" "$DESCRIPTION_VALUE"
   done < <(list_skills)
+
+  printf '%s' "$output"
 }
 
 list_modules_verbose() {
   local module
+  local output=""
 
   while IFS= read -r module; do
     if list_explicit_modules | contains_line "$module"; then
@@ -156,17 +195,22 @@ list_modules_verbose() {
     else
       description_for_skill "$module"
     fi
-    printf '%s\t%s\n' "$module" "$DESCRIPTION_VALUE"
+    printf -v output '%s%s\t%s\n' "$output" "$module" "$DESCRIPTION_VALUE"
   done < <(list_modules)
+
+  printf '%s' "$output"
 }
 
 list_profiles_verbose() {
   local profile
+  local output=""
 
   while IFS= read -r profile; do
     description_for_profile "$profile"
-    printf '%s\t%s\n' "$profile" "$DESCRIPTION_VALUE"
+    printf -v output '%s%s\t%s\n' "$output" "$profile" "$DESCRIPTION_VALUE"
   done < <(list_profiles)
+
+  printf '%s' "$output"
 }
 
 contains_line() {
