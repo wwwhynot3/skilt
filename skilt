@@ -7,6 +7,8 @@ CONFIG_DIR="${SKILT_CONFIG_DIR:-$DEFAULT_CONFIG_DIR}"
 GSTACK_SKILLS_DIR="${SKILT_GSTACK_SKILLS_DIR:-$HOME/gstack/.agents/skills}"
 AGENT_FILTER="all"
 DRY_RUN="false"
+LIST_VERBOSE="false"
+LIST_ENTITY=""
 
 usage() {
   cat <<'EOF'
@@ -21,7 +23,7 @@ Usage:
   skilt all-off [-a agent] [-n]
   skilt reset [-a agent] [-n]
   skilt doctor
-  skilt list agents|modules|profiles|skills
+  skilt list agents|modules|profiles|skills [--verbose]
 
 Options:
   -a, --agent   Agent to target. Defaults to all.
@@ -79,6 +81,92 @@ list_explicit_modules() {
 
 list_profiles() {
   read_column profiles.tsv 1 | sort -u
+}
+
+list_modules() {
+  { list_explicit_modules; list_skills; } | sort -u
+}
+
+description_for_skill() {
+  local skill="$1"
+
+  awk -F '\t' -v skill="$skill" '
+    NF && $1 !~ /^#/ && $1 == skill {
+      if ($2 == "") {
+        exit 2
+      }
+      print $2
+      found=1
+      exit
+    }
+    END {
+      exit found ? 0 : 1
+    }
+  ' "$(config_file skills.tsv)" || die "missing description for skill: $skill"
+}
+
+description_for_module() {
+  local module="$1"
+
+  awk -F '\t' -v module="$module" '
+    NF && $1 !~ /^#/ && $1 == module {
+      if ($3 == "") {
+        exit 2
+      }
+      print $3
+      found=1
+      exit
+    }
+    END {
+      exit found ? 0 : 1
+    }
+  ' "$(config_file modules.tsv)" || die "missing description for module: $module"
+}
+
+description_for_profile() {
+  local profile="$1"
+
+  awk -F '\t' -v profile="$profile" '
+    NF && $1 !~ /^#/ && $1 == profile {
+      if ($3 == "") {
+        exit 2
+      }
+      print $3
+      found=1
+      exit
+    }
+    END {
+      exit found ? 0 : 1
+    }
+  ' "$(config_file profiles.tsv)" || die "missing description for profile: $profile"
+}
+
+list_skills_verbose() {
+  local skill
+
+  while IFS= read -r skill; do
+    printf '%s\t%s\n' "$skill" "$(description_for_skill "$skill")"
+  done < <(list_skills)
+}
+
+list_modules_verbose() {
+  local module
+
+  while IFS= read -r module; do
+    if list_explicit_modules | contains_line "$module"; then
+      printf '%s\t%s\n' "$module" "$(description_for_module "$module")"
+    else
+      printf '%s\t%s\n' "$module" "$(description_for_skill "$module")"
+    fi
+  done < <(list_modules)
+}
+
+list_profiles_verbose() {
+  local profile
+
+  while IFS= read -r profile; do
+    printf '%s\t%s\n' "$profile" "$(description_for_profile "$profile")"
+  done < <(list_profiles)
 }
 
 contains_line() {
@@ -551,6 +639,29 @@ parse_common_options() {
   fi
 }
 
+parse_list_options() {
+  LIST_ENTITY=""
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      -v|--verbose)
+        LIST_VERBOSE="true"
+        shift
+        ;;
+      agents|modules|profiles|skills)
+        [ -z "$LIST_ENTITY" ] || die "list requires one of: agents modules profiles skills"
+        LIST_ENTITY="$1"
+        shift
+        ;;
+      *)
+        die "unknown option: $1"
+        ;;
+    esac
+  done
+
+  [ -n "$LIST_ENTITY" ] || die "list requires one of: agents modules profiles skills"
+}
+
 main() {
   local command="${1:-}"
   [ -n "$command" ] || {
@@ -608,13 +719,38 @@ main() {
       doctor
       ;;
     list)
-      [ "$#" -eq 1 ] || die "list requires one of: agents modules profiles skills"
-      case "$1" in
-        agents) list_agents ;;
-        modules) { list_explicit_modules; list_skills; } | sort -u ;;
-        profiles) list_profiles ;;
-        skills) list_skills ;;
-        *) die "list requires one of: agents modules profiles skills" ;;
+      LIST_VERBOSE="false"
+      LIST_ENTITY=""
+      parse_list_options "$@"
+      case "$LIST_ENTITY" in
+        agents)
+          [ "$LIST_VERBOSE" = "false" ] || die "list --verbose only supports modules profiles skills"
+          list_agents
+          ;;
+        modules)
+          if [ "$LIST_VERBOSE" = "true" ]; then
+            list_modules_verbose
+          else
+            list_modules
+          fi
+          ;;
+        profiles)
+          if [ "$LIST_VERBOSE" = "true" ]; then
+            list_profiles_verbose
+          else
+            list_profiles
+          fi
+          ;;
+        skills)
+          if [ "$LIST_VERBOSE" = "true" ]; then
+            list_skills_verbose
+          else
+            list_skills
+          fi
+          ;;
+        *)
+          die "list requires one of: agents modules profiles skills"
+          ;;
       esac
       ;;
     -h|--help)
