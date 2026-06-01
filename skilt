@@ -1,0 +1,629 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_CONFIG_DIR="$SCRIPT_DIR/gstack-skill-config"
+CONFIG_DIR="${SKILT_CONFIG_DIR:-$DEFAULT_CONFIG_DIR}"
+GSTACK_SKILLS_DIR="${SKILT_GSTACK_SKILLS_DIR:-$HOME/gstack/.agents/skills}"
+AGENT_FILTER="all"
+DRY_RUN="false"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  skilt status [-a agent]
+  skilt count [-a agent]
+  skilt diff [-a agent]
+  skilt use <profile> [-a agent] [-n]
+  skilt on <module|skill> [-a agent] [-n]
+  skilt off <module|skill> [-a agent] [-n]
+  skilt all-on [-a agent] [-n]
+  skilt all-off [-a agent] [-n]
+  skilt reset [-a agent] [-n]
+  skilt doctor
+  skilt list agents|modules|profiles|skills
+
+Options:
+  -a, --agent   Agent to target. Defaults to all.
+  -n, --dry-run Preview moves without changing files.
+
+Config:
+  gstack-skill-config/agents.tsv
+  gstack-skill-config/skills.tsv
+  gstack-skill-config/modules.tsv
+  gstack-skill-config/profiles.tsv
+
+Notes:
+  Each skill has an implicit self-module, so `skilt on design-html` works even
+  when modules.tsv only maps design-html to a broader module such as design.
+EOF
+}
+
+die() {
+  echo "ERROR $*" >&2
+  exit 1
+}
+
+warn() {
+  echo "WARN $*"
+}
+
+config_file() {
+  printf '%s/%s\n' "$CONFIG_DIR" "$1"
+}
+
+ensure_config() {
+  local file
+  for file in agents.tsv skills.tsv modules.tsv profiles.tsv; do
+    [ -f "$(config_file "$file")" ] || die "missing config file: $(config_file "$file")"
+  done
+}
+
+read_column() {
+  local file="$1"
+  local column="$2"
+  awk -F '\t' -v col="$column" 'NF && $1 !~ /^#/ { print $col }' "$(config_file "$file")"
+}
+
+list_agents() {
+  read_column agents.tsv 1 | sort -u
+}
+
+list_skills() {
+  read_column skills.tsv 1 | sort -u
+}
+
+list_explicit_modules() {
+  read_column modules.tsv 1 | sort -u
+}
+
+list_profiles() {
+  read_column profiles.tsv 1 | sort -u
+}
+
+contains_line() {
+  local needle="$1"
+  grep -Fxq "$needle"
+}
+
+agent_selected() {
+  local agent="$1"
+  [ "$AGENT_FILTER" = "all" ] || [ "$AGENT_FILTER" = "$agent" ]
+}
+
+expand_path() {
+  local path="$1"
+  case "$path" in
+    "~") printf '%s\n' "$HOME" ;;
+    [~]/*) printf '%s/%s\n' "$HOME" "${path#\~/}" ;;
+    *) printf '%s\n' "$path" ;;
+  esac
+}
+
+agent_field() {
+  local agent="$1"
+  local column="$2"
+  awk -F '\t' -v agent="$agent" -v col="$column" 'NF && $1 !~ /^#/ && $1 == agent { print $col; found=1; exit } END { exit found ? 0 : 1 }' "$(config_file agents.tsv)"
+}
+
+enabled_root() {
+  expand_path "$(agent_field "$1" 2)"
+}
+
+disabled_root() {
+  expand_path "$(agent_field "$1" 3)"
+}
+
+entry_style() {
+  agent_field "$1" 4
+}
+
+entry_name() {
+  local agent="$1"
+  local skill="$2"
+  local style
+  style="$(entry_style "$agent")"
+
+  case "$style" in
+    gstack-prefix)
+      printf 'gstack-%s\n' "$skill"
+      ;;
+    plain)
+      printf '%s\n' "$skill"
+      ;;
+    *)
+      die "unknown entry_style for $agent: $style"
+      ;;
+  esac
+}
+
+run_mv() {
+  local src="$1"
+  local dst="$2"
+
+  if [ "$DRY_RUN" = "true" ]; then
+    echo "DRY-RUN mv $src $dst"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$dst")"
+  mv "$src" "$dst"
+}
+
+move_if_present() {
+  local src="$1"
+  local dst="$2"
+  local label="$3"
+
+  if [ ! -e "$src" ] && [ ! -L "$src" ]; then
+    return 0
+  fi
+
+  if [ -e "$dst" ] || [ -L "$dst" ]; then
+    echo "skip $label: destination already exists: $dst"
+    return 0
+  fi
+
+  echo "move $label"
+  run_mv "$src" "$dst"
+}
+
+enable_skill_for_agent() {
+  local agent="$1"
+  local skill="$2"
+  local root disabled name
+  root="$(enabled_root "$agent")"
+  disabled="$(disabled_root "$agent")"
+  name="$(entry_name "$agent" "$skill")"
+  [ "$DRY_RUN" = "true" ] || mkdir -p "$root"
+  move_if_present "$disabled/$name" "$root/$name" "$agent enable $name"
+}
+
+disable_skill_for_agent() {
+  local agent="$1"
+  local skill="$2"
+  local root disabled name
+  root="$(enabled_root "$agent")"
+  disabled="$(disabled_root "$agent")"
+  name="$(entry_name "$agent" "$skill")"
+  [ -d "$root" ] || return 0
+  move_if_present "$root/$name" "$disabled/$name" "$agent disable $name"
+}
+
+apply_skill_state() {
+  local skill="$1"
+  local state="$2"
+  local agent
+  while IFS= read -r agent; do
+    agent_selected "$agent" || continue
+    case "$state" in
+      on) enable_skill_for_agent "$agent" "$skill" ;;
+      off) disable_skill_for_agent "$agent" "$skill" ;;
+      *) die "unknown state: $state" ;;
+    esac
+  done < <(list_agents)
+}
+
+skills_for_module() {
+  local module="$1"
+
+  if list_skills | contains_line "$module"; then
+    printf '%s\n' "$module"
+  fi
+
+  awk -F '\t' -v module="$module" 'NF && $1 !~ /^#/ && $1 == module { print $2 }' "$(config_file modules.tsv)"
+}
+
+skills_for_profile() {
+  local profile="$1"
+  local module
+  awk -F '\t' -v profile="$profile" 'NF && $1 !~ /^#/ && $1 == profile { print $2 }' "$(config_file profiles.tsv)" |
+    while IFS= read -r module; do
+      skills_for_module "$module"
+    done |
+    sort -u
+}
+
+module_exists() {
+  local module="$1"
+  if list_skills | contains_line "$module"; then
+    return 0
+  fi
+  list_explicit_modules | contains_line "$module"
+}
+
+profile_exists() {
+  local profile="$1"
+  list_profiles | contains_line "$profile"
+}
+
+use_profile() {
+  local profile="$1"
+  local skill
+  profile_exists "$profile" || die "unknown profile: $profile"
+
+  while IFS= read -r skill; do
+    if skills_for_profile "$profile" | contains_line "$skill"; then
+      apply_skill_state "$skill" on
+    else
+      apply_skill_state "$skill" off
+    fi
+  done < <(list_skills)
+}
+
+set_module() {
+  local module="$1"
+  local state="$2"
+  local skill
+
+  module_exists "$module" || die "unknown module or skill: $module"
+  while IFS= read -r skill; do
+    [ -n "$skill" ] || continue
+    apply_skill_state "$skill" "$state"
+  done < <(skills_for_module "$module" | sort -u)
+}
+
+set_all() {
+  local state="$1"
+  local skill
+
+  while IFS= read -r skill; do
+    apply_skill_state "$skill" "$state"
+  done < <(list_skills)
+}
+
+count_entries() {
+  local root="$1"
+  [ -d "$root" ] || {
+    printf '0'
+    return 0
+  }
+  find "$root" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) | wc -l | tr -d ' '
+}
+
+count_lines() {
+  awk 'NF { count++ } END { print count + 0 }'
+}
+
+status_agent() {
+  local agent="$1"
+  local root disabled
+  agent_selected "$agent" || return 0
+  root="$(enabled_root "$agent")"
+  disabled="$(disabled_root "$agent")"
+  printf '%-8s enabled=%s disabled=%s\n' "$agent" "$(count_entries "$root")" "$(count_entries "$disabled")"
+  printf '  enabled root:  %s\n' "$root"
+  printf '  disabled root: %s\n' "$disabled"
+}
+
+status_all() {
+  local agent
+  while IFS= read -r agent; do
+    status_agent "$agent"
+  done < <(list_agents)
+}
+
+configured_skill_count() {
+  list_skills | count_lines
+}
+
+installed_skill_items() {
+  [ -d "$GSTACK_SKILLS_DIR" ] || return 0
+  find "$GSTACK_SKILLS_DIR" -mindepth 2 -maxdepth 2 -name SKILL.md -printf '%h\n' |
+    awk -F '/' '{
+      name=$NF
+      if (name == "gstack") print "gstack"
+      else if (name == "gstack-upgrade") print "gstack-upgrade"
+      else if (name ~ /^gstack-/) { sub(/^gstack-/, "", name); print name }
+      else print name
+    }' |
+    sort -u
+}
+
+installed_skill_names() {
+  installed_skill_items | grep -v '^gstack$' || true
+}
+
+installed_skill_item_count() {
+  installed_skill_items | count_lines
+}
+
+installed_skill_name_count() {
+  installed_skill_names | count_lines
+}
+
+path_present() {
+  local path="$1"
+  [ -e "$path" ] || [ -L "$path" ]
+}
+
+agent_skill_state() {
+  local agent="$1"
+  local skill="$2"
+  local name enabled disabled
+  name="$(entry_name "$agent" "$skill")"
+  enabled="$(enabled_root "$agent")/$name"
+  disabled="$(disabled_root "$agent")/$name"
+
+  if path_present "$enabled"; then
+    printf 'enabled\n'
+  elif path_present "$disabled"; then
+    printf 'disabled\n'
+  else
+    printf 'missing\n'
+  fi
+}
+
+join_lines_csv() {
+  awk '
+    NF {
+      if (count > 0) printf ", "
+      printf "%s", $0
+      count++
+    }
+    END {
+      if (count == 0) printf "(none)"
+      printf "\n"
+    }
+  '
+}
+
+list_agent_skills_by_state() {
+  local agent="$1"
+  local wanted="$2"
+  local skill state
+
+  while IFS= read -r skill; do
+    state="$(agent_skill_state "$agent" "$skill")"
+    if [ "$state" = "$wanted" ]; then
+      printf '%s\n' "$skill"
+    fi
+  done < <(list_skills)
+}
+
+print_section() {
+  local title="$1"
+  shift
+  echo "$title:"
+  if [ "$#" -gt 0 ]; then
+    "$@"
+  fi
+}
+
+print_section_list() {
+  local title="$1"
+  shift
+  local content
+  content="$("$@" || true)"
+  echo "$title:"
+  if [ -n "$content" ]; then
+    printf '%s\n' "$content" | sed 's/^/  /'
+  else
+    echo "  (none)"
+  fi
+}
+
+count_command() {
+  local agent
+  echo "configured_skills=$(configured_skill_count)"
+  echo "installed_skills=$(installed_skill_item_count)"
+  echo "installed_non_root_skills=$(installed_skill_name_count)"
+  while IFS= read -r agent; do
+    agent_selected "$agent" || continue
+    printf '%-8s enabled=%s disabled=%s\n' "$agent" "$(count_entries "$(enabled_root "$agent")")" "$(count_entries "$(disabled_root "$agent")")"
+  done < <(list_agents)
+}
+
+configured_not_installed() {
+  local skill
+  while IFS= read -r skill; do
+    if ! installed_skill_names | contains_line "$skill"; then
+      printf '%s\n' "$skill"
+    fi
+  done < <(list_skills)
+}
+
+installed_not_configured() {
+  local skill
+  while IFS= read -r skill; do
+    if ! list_skills | contains_line "$skill"; then
+      printf '%s\n' "$skill"
+    fi
+  done < <(installed_skill_items)
+}
+
+diff_command() {
+  local agent
+  print_section_list "configured_not_installed" configured_not_installed
+  print_section_list "installed_not_configured" installed_not_configured
+  echo "enabled_by_agent:"
+  while IFS= read -r agent; do
+    agent_selected "$agent" || continue
+    printf '  %s: ' "$agent"
+    list_agent_skills_by_state "$agent" enabled | join_lines_csv
+  done < <(list_agents)
+  echo "disabled_by_agent:"
+  while IFS= read -r agent; do
+    agent_selected "$agent" || continue
+    printf '  %s: ' "$agent"
+    list_agent_skills_by_state "$agent" disabled | join_lines_csv
+  done < <(list_agents)
+}
+
+doctor() {
+  local errors=0
+  local skill module profile agent root disabled installed configured
+
+  while IFS= read -r skill; do
+    [ -n "$skill" ] || continue
+    if [ "$(grep -Fx "$skill" "$(config_file skills.tsv)" | wc -l | tr -d ' ')" -gt 1 ]; then
+      echo "ERROR skills.tsv contains duplicate skill: $skill"
+      errors=$((errors + 1))
+    fi
+  done < <(list_skills)
+
+  while IFS=$'\t' read -r module skill _; do
+    [ -n "${module:-}" ] || continue
+    [[ "$module" =~ ^# ]] && continue
+    if ! list_skills | contains_line "$skill"; then
+      echo "ERROR modules.tsv references unknown skill: $skill"
+      errors=$((errors + 1))
+    fi
+  done <"$(config_file modules.tsv)"
+
+  while IFS=$'\t' read -r profile module _; do
+    [ -n "${profile:-}" ] || continue
+    [[ "$profile" =~ ^# ]] && continue
+    if ! module_exists "$module"; then
+      echo "ERROR profiles.tsv references unknown module: $module"
+      errors=$((errors + 1))
+    fi
+  done <"$(config_file profiles.tsv)"
+
+  while IFS= read -r skill; do
+    if ! awk -F '\t' -v skill="$skill" 'NF && $1 !~ /^#/ && $2 == skill { found=1 } END { exit found ? 0 : 1 }' "$(config_file modules.tsv)"; then
+      warn "skill $skill only has implicit self-module; no functional module binding"
+    fi
+  done < <(list_skills)
+
+  while IFS= read -r installed; do
+    if ! list_skills | contains_line "$installed"; then
+      echo "ERROR installed gstack skill missing from skills.tsv: $installed"
+      errors=$((errors + 1))
+    fi
+  done < <(installed_skill_names)
+
+  while IFS= read -r configured; do
+    if [ -d "$GSTACK_SKILLS_DIR" ]; then
+      if [ ! -f "$GSTACK_SKILLS_DIR/gstack-$configured/SKILL.md" ] && [ "$configured" != "gstack-upgrade" -o ! -f "$GSTACK_SKILLS_DIR/gstack-upgrade/SKILL.md" ]; then
+        warn "configured skill not installed locally: $configured"
+      fi
+    fi
+  done < <(list_skills)
+
+  while IFS= read -r agent; do
+    root="$(enabled_root "$agent")"
+    disabled="$(disabled_root "$agent")"
+    [ -d "$root" ] || warn "agent $agent enabled root missing: $root"
+    [ -d "$disabled" ] || continue
+    while IFS= read -r skill; do
+      local name
+      name="$(entry_name "$agent" "$skill")"
+      if { [ -e "$root/$name" ] || [ -L "$root/$name" ]; } && { [ -e "$disabled/$name" ] || [ -L "$disabled/$name" ]; }; then
+        echo "ERROR agent $agent has enabled and disabled copy for: $name"
+        errors=$((errors + 1))
+      fi
+    done < <(list_skills)
+  done < <(list_agents)
+
+  if [ "$errors" -gt 0 ]; then
+    echo "doctor found $errors error(s)"
+    return 1
+  fi
+
+  echo "doctor ok"
+}
+
+parse_common_options() {
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      -a|--agent|--host)
+        [ "$#" -ge 2 ] || die "$1 requires a value"
+        AGENT_FILTER="$2"
+        shift 2
+        ;;
+      -n|--dry-run)
+        DRY_RUN="true"
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        die "unknown option: $1"
+        ;;
+    esac
+  done
+
+  if [ "$AGENT_FILTER" != "all" ] && ! list_agents | contains_line "$AGENT_FILTER"; then
+    die "unknown agent: $AGENT_FILTER"
+  fi
+}
+
+main() {
+  local command="${1:-}"
+  [ -n "$command" ] || {
+    usage
+    exit 1
+  }
+  shift || true
+
+  ensure_config
+
+  case "$command" in
+    status)
+      parse_common_options "$@"
+      status_all
+      ;;
+    count)
+      parse_common_options "$@"
+      count_command
+      ;;
+    diff)
+      parse_common_options "$@"
+      diff_command
+      ;;
+    use)
+      [ "$#" -ge 1 ] || die "use requires a profile"
+      local profile="$1"
+      shift
+      parse_common_options "$@"
+      use_profile "$profile"
+      ;;
+    on)
+      [ "$#" -ge 1 ] || die "on requires a module or skill"
+      local module_on="$1"
+      shift
+      parse_common_options "$@"
+      set_module "$module_on" on
+      ;;
+    off)
+      [ "$#" -ge 1 ] || die "off requires a module or skill"
+      local module_off="$1"
+      shift
+      parse_common_options "$@"
+      set_module "$module_off" off
+      ;;
+    all-on|reset)
+      parse_common_options "$@"
+      set_all on
+      ;;
+    all-off)
+      parse_common_options "$@"
+      set_all off
+      ;;
+    doctor)
+      [ "$#" -eq 0 ] || die "doctor does not accept options"
+      doctor
+      ;;
+    list)
+      [ "$#" -eq 1 ] || die "list requires one of: agents modules profiles skills"
+      case "$1" in
+        agents) list_agents ;;
+        modules) { list_explicit_modules; list_skills; } | sort -u ;;
+        profiles) list_profiles ;;
+        skills) list_skills ;;
+        *) die "list requires one of: agents modules profiles skills" ;;
+      esac
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      die "unknown command: $command"
+      ;;
+  esac
+}
+
+main "$@"

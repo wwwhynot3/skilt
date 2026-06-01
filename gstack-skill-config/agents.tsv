@@ -1,0 +1,4 @@
+# agent	enabled_dir	disabled_dir	entry_style
+codex	~/.codex/skills	~/.codex/skills.disabled/gstack	gstack-prefix
+claude	~/.claude/skills	~/.claude/skills.disabled/gstack	plain
+opencode	~/.config/opencode/skills	~/.config/opencode/skills.disabled/gstack	gstack-prefix
