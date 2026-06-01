@@ -193,6 +193,20 @@ test_doctor_rejects_skill_without_description() {
   grep -q "^ERROR skills.tsv missing description for skill: malformed-skill$" /tmp/skilt-doctor-skill-description-error.out || fail "doctor should report missing skill descriptions"
 }
 
+test_doctor_rejects_skill_with_blank_description() {
+  setup_fixture
+
+  printf 'blank-skill\t\n' >>"$TEST_CONFIG/skills.tsv"
+  mkdir -p "$TEST_GSTACK/gstack-blank-skill"
+  touch "$TEST_GSTACK/gstack-blank-skill/SKILL.md"
+
+  if "$SCRIPT" doctor >/tmp/skilt-doctor-blank-skill-description-error.out; then
+    fail "doctor should fail on blank skill descriptions"
+  fi
+
+  grep -q "^ERROR skills.tsv missing description for skill: blank-skill$" /tmp/skilt-doctor-blank-skill-description-error.out || fail "doctor should report blank skill descriptions"
+}
+
 test_list_commands_include_config_entities() {
   setup_fixture
 
@@ -254,6 +268,12 @@ test_list_verbose_rejects_agents() {
   fi
 
   grep -q "^ERROR list --verbose only supports modules profiles skills$" /tmp/skilt-list-agents-verbose.out || fail "agents verbose rejection should explain supported entities"
+
+  if "$SCRIPT" list agents -v >/tmp/skilt-list-agents-short-verbose.out 2>&1; then
+    fail "agents short verbose list should be rejected"
+  fi
+
+  grep -q "^ERROR list --verbose only supports modules profiles skills$" /tmp/skilt-list-agents-short-verbose.out || fail "agents short verbose rejection should explain supported entities"
 }
 
 test_list_verbose_errors_when_skill_description_is_missing() {
@@ -266,6 +286,18 @@ test_list_verbose_errors_when_skill_description_is_missing() {
   fi
 
   grep -q "^ERROR missing description for skill: malformed-skill$" /tmp/skilt-list-skills-missing-description.out || fail "skills verbose list should report missing skill descriptions"
+}
+
+test_list_verbose_errors_when_skill_description_is_blank() {
+  setup_fixture
+
+  printf 'blank-skill\t\n' >>"$TEST_CONFIG/skills.tsv"
+
+  if "$SCRIPT" list skills --verbose >/tmp/skilt-list-skills-blank-description.out 2>&1; then
+    fail "skills verbose list should fail when a description is blank"
+  fi
+
+  grep -q "^ERROR missing description for skill: blank-skill$" /tmp/skilt-list-skills-blank-description.out || fail "skills verbose list should report blank skill descriptions"
 }
 
 test_list_verbose_errors_when_module_description_is_missing() {
@@ -351,10 +383,12 @@ test_module_on_off_uses_explicit_and_implicit_modules
 test_all_on_all_off_and_reset
 test_doctor_validates_config_and_missing_functional_module
 test_doctor_rejects_skill_without_description
+test_doctor_rejects_skill_with_blank_description
 test_list_commands_include_config_entities
 test_list_verbose_prints_descriptions
 test_list_verbose_rejects_agents
 test_list_verbose_errors_when_skill_description_is_missing
+test_list_verbose_errors_when_skill_description_is_blank
 test_list_verbose_errors_when_module_description_is_missing
 test_list_verbose_errors_when_profile_description_is_missing
 test_doctor_rejects_inconsistent_module_descriptions
