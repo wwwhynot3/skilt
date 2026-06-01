@@ -165,14 +165,14 @@ test_doctor_validates_config_and_missing_functional_module() {
   "$SCRIPT" doctor >/tmp/skilt-doctor-ok.out
   grep -q "doctor ok" /tmp/skilt-doctor-ok.out || fail "doctor should pass valid fixture"
 
-  printf 'orphan\n' >>"$TEST_CONFIG/skills.tsv"
+  printf 'orphan\tAd-hoc skill without an explicit functional module.\n' >>"$TEST_CONFIG/skills.tsv"
   mkdir -p "$TEST_GSTACK/gstack-orphan"
   touch "$TEST_GSTACK/gstack-orphan/SKILL.md"
 
   "$SCRIPT" doctor >/tmp/skilt-doctor-warn.out
   grep -q "WARN skill orphan only has implicit self-module" /tmp/skilt-doctor-warn.out || fail "doctor should warn about missing functional module"
 
-  printf 'broken-module\tmissing-skill\n' >>"$TEST_CONFIG/modules.tsv"
+  printf 'broken-module\tmissing-skill\tBroken module that points at an unknown skill.\n' >>"$TEST_CONFIG/modules.tsv"
   if "$SCRIPT" doctor >/tmp/skilt-doctor-error.out; then
     fail "doctor should fail on module referencing unknown skill"
   fi
@@ -196,12 +196,13 @@ test_list_commands_include_config_entities() {
 test_list_verbose_prints_descriptions() {
   setup_fixture
 
-  "$SCRIPT" list skills --verbose >/tmp/skilt-list-skills-verbose.out
+  "$SCRIPT" list skills -v >/tmp/skilt-list-skills-verbose.out
   "$SCRIPT" list modules --verbose >/tmp/skilt-list-modules-verbose.out
   "$SCRIPT" list profiles --verbose >/tmp/skilt-list-profiles-verbose.out
 
   grep -q $'^design-html\tCreate or refine HTML-first interface designs\\.$' /tmp/skilt-list-skills-verbose.out || fail "skills verbose list should include descriptions"
   grep -q $'^design\tDesign-oriented skills for UI and review work\\.$' /tmp/skilt-list-modules-verbose.out || fail "modules verbose list should include descriptions"
+  grep -q $'^design-html\tCreate or refine HTML-first interface designs\\.$' /tmp/skilt-list-modules-verbose.out || fail "modules verbose list should keep implicit self-modules with skill descriptions"
   grep -q $'^backend-indie\tLean backend-focused workflow with debugging, product, and ship support\\.$' /tmp/skilt-list-profiles-verbose.out || fail "profiles verbose list should include descriptions"
 }
 
@@ -213,6 +214,30 @@ test_list_verbose_rejects_agents() {
   fi
 
   grep -q "^ERROR list --verbose only supports modules profiles skills$" /tmp/skilt-list-agents-verbose.out || fail "agents verbose rejection should explain supported entities"
+}
+
+test_doctor_rejects_inconsistent_module_descriptions() {
+  setup_fixture
+
+  printf 'design\tdesign-html\tConflicting module description for review coverage.\n' >>"$TEST_CONFIG/modules.tsv"
+
+  if "$SCRIPT" doctor >/tmp/skilt-doctor-module-description-conflict.out; then
+    fail "doctor should fail on inconsistent module descriptions"
+  fi
+
+  grep -q "^ERROR modules.tsv has inconsistent descriptions for module: design$" /tmp/skilt-doctor-module-description-conflict.out || fail "doctor should report module description conflicts"
+}
+
+test_doctor_rejects_inconsistent_profile_descriptions() {
+  setup_fixture
+
+  printf 'backend-indie\tcore\tConflicting profile description for review coverage.\n' >>"$TEST_CONFIG/profiles.tsv"
+
+  if "$SCRIPT" doctor >/tmp/skilt-doctor-profile-description-conflict.out; then
+    fail "doctor should fail on inconsistent profile descriptions"
+  fi
+
+  grep -q "^ERROR profiles.tsv has inconsistent descriptions for profile: backend-indie$" /tmp/skilt-doctor-profile-description-conflict.out || fail "doctor should report profile description conflicts"
 }
 
 test_count_reports_config_install_and_agent_totals() {
@@ -252,6 +277,8 @@ test_doctor_validates_config_and_missing_functional_module
 test_list_commands_include_config_entities
 test_list_verbose_prints_descriptions
 test_list_verbose_rejects_agents
+test_doctor_rejects_inconsistent_module_descriptions
+test_doctor_rejects_inconsistent_profile_descriptions
 test_count_reports_config_install_and_agent_totals
 test_diff_reports_config_install_and_agent_lists
 
