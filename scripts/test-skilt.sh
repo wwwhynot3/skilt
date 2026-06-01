@@ -207,6 +207,54 @@ test_doctor_rejects_skill_with_blank_description() {
   grep -q "^ERROR skills.tsv missing description for skill: blank-skill$" /tmp/skilt-doctor-blank-skill-description-error.out || fail "doctor should report blank skill descriptions"
 }
 
+test_doctor_rejects_module_without_description() {
+  setup_fixture
+
+  printf 'truncated-module\tinvestigate\n' >>"$TEST_CONFIG/modules.tsv"
+
+  if "$SCRIPT" doctor >/tmp/skilt-doctor-module-description-error.out; then
+    fail "doctor should fail on modules missing descriptions"
+  fi
+
+  grep -q "^ERROR modules.tsv missing description for module: truncated-module$" /tmp/skilt-doctor-module-description-error.out || fail "doctor should report missing module descriptions"
+}
+
+test_doctor_rejects_module_with_blank_description() {
+  setup_fixture
+
+  printf 'blank-module\tinvestigate\t\n' >>"$TEST_CONFIG/modules.tsv"
+
+  if "$SCRIPT" doctor >/tmp/skilt-doctor-blank-module-description-error.out; then
+    fail "doctor should fail on blank module descriptions"
+  fi
+
+  grep -q "^ERROR modules.tsv missing description for module: blank-module$" /tmp/skilt-doctor-blank-module-description-error.out || fail "doctor should report blank module descriptions"
+}
+
+test_doctor_rejects_profile_without_description() {
+  setup_fixture
+
+  printf 'truncated-profile\tcore\n' >>"$TEST_CONFIG/profiles.tsv"
+
+  if "$SCRIPT" doctor >/tmp/skilt-doctor-profile-description-error.out; then
+    fail "doctor should fail on profiles missing descriptions"
+  fi
+
+  grep -q "^ERROR profiles.tsv missing description for profile: truncated-profile$" /tmp/skilt-doctor-profile-description-error.out || fail "doctor should report missing profile descriptions"
+}
+
+test_doctor_rejects_profile_with_blank_description() {
+  setup_fixture
+
+  printf 'blank-profile\tcore\t\n' >>"$TEST_CONFIG/profiles.tsv"
+
+  if "$SCRIPT" doctor >/tmp/skilt-doctor-blank-profile-description-error.out; then
+    fail "doctor should fail on blank profile descriptions"
+  fi
+
+  grep -q "^ERROR profiles.tsv missing description for profile: blank-profile$" /tmp/skilt-doctor-blank-profile-description-error.out || fail "doctor should report blank profile descriptions"
+}
+
 test_list_commands_include_config_entities() {
   setup_fixture
 
@@ -224,9 +272,9 @@ EOF
 
   cat >/tmp/skilt-list-modules.expected <<'EOF'
 core
+deploy
 design
 design-html
-deploy
 investigate
 ios
 ios-qa
@@ -483,6 +531,10 @@ test_all_on_all_off_and_reset
 test_doctor_validates_config_and_missing_functional_module
 test_doctor_rejects_skill_without_description
 test_doctor_rejects_skill_with_blank_description
+test_doctor_rejects_module_without_description
+test_doctor_rejects_module_with_blank_description
+test_doctor_rejects_profile_without_description
+test_doctor_rejects_profile_with_blank_description
 test_list_commands_include_config_entities
 test_list_verbose_prints_descriptions
 test_list_verbose_rejects_agents
