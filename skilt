@@ -9,6 +9,7 @@ AGENT_FILTER="all"
 DRY_RUN="false"
 LIST_VERBOSE="false"
 LIST_ENTITY=""
+DESCRIPTION_VALUE=""
 
 usage() {
   cat <<'EOF'
@@ -87,65 +88,62 @@ list_modules() {
   { list_explicit_modules; list_skills; } | sort -u
 }
 
+lookup_description() {
+  local file="$1"
+  local name="$2"
+  local column="$3"
+
+  if ! DESCRIPTION_VALUE="$(
+    awk -F '\t' -v name="$name" -v column="$column" '
+      NF && $1 !~ /^#/ && $1 == name {
+        found=1
+        if ($column == "") {
+          bad=1
+          exit
+        }
+        if (description == "") {
+          description=$column
+        }
+      }
+      END {
+        if (bad) {
+          exit 2
+        }
+        if (!found) {
+          exit 1
+        }
+        print description
+      }
+    ' "$(config_file "$file")"
+  )"; then
+    return 1
+  fi
+}
+
 description_for_skill() {
   local skill="$1"
 
-  awk -F '\t' -v skill="$skill" '
-    NF && $1 !~ /^#/ && $1 == skill {
-      if ($2 == "") {
-        exit 2
-      }
-      print $2
-      found=1
-      exit
-    }
-    END {
-      exit found ? 0 : 1
-    }
-  ' "$(config_file skills.tsv)" || die "missing description for skill: $skill"
+  lookup_description skills.tsv "$skill" 2 || die "missing description for skill: $skill"
 }
 
 description_for_module() {
   local module="$1"
 
-  awk -F '\t' -v module="$module" '
-    NF && $1 !~ /^#/ && $1 == module {
-      if ($3 == "") {
-        exit 2
-      }
-      print $3
-      found=1
-      exit
-    }
-    END {
-      exit found ? 0 : 1
-    }
-  ' "$(config_file modules.tsv)" || die "missing description for module: $module"
+  lookup_description modules.tsv "$module" 3 || die "missing description for module: $module"
 }
 
 description_for_profile() {
   local profile="$1"
 
-  awk -F '\t' -v profile="$profile" '
-    NF && $1 !~ /^#/ && $1 == profile {
-      if ($3 == "") {
-        exit 2
-      }
-      print $3
-      found=1
-      exit
-    }
-    END {
-      exit found ? 0 : 1
-    }
-  ' "$(config_file profiles.tsv)" || die "missing description for profile: $profile"
+  lookup_description profiles.tsv "$profile" 3 || die "missing description for profile: $profile"
 }
 
 list_skills_verbose() {
   local skill
 
   while IFS= read -r skill; do
-    printf '%s\t%s\n' "$skill" "$(description_for_skill "$skill")"
+    description_for_skill "$skill"
+    printf '%s\t%s\n' "$skill" "$DESCRIPTION_VALUE"
   done < <(list_skills)
 }
 
@@ -154,10 +152,11 @@ list_modules_verbose() {
 
   while IFS= read -r module; do
     if list_explicit_modules | contains_line "$module"; then
-      printf '%s\t%s\n' "$module" "$(description_for_module "$module")"
+      description_for_module "$module"
     else
-      printf '%s\t%s\n' "$module" "$(description_for_skill "$module")"
+      description_for_skill "$module"
     fi
+    printf '%s\t%s\n' "$module" "$DESCRIPTION_VALUE"
   done < <(list_modules)
 }
 
@@ -165,7 +164,8 @@ list_profiles_verbose() {
   local profile
 
   while IFS= read -r profile; do
-    printf '%s\t%s\n' "$profile" "$(description_for_profile "$profile")"
+    description_for_profile "$profile"
+    printf '%s\t%s\n' "$profile" "$DESCRIPTION_VALUE"
   done < <(list_profiles)
 }
 
