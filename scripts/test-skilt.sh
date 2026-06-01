@@ -325,6 +325,12 @@ test_list_verbose_errors_when_skill_description_is_missing() {
   fi
 
   grep -q "^ERROR missing description for skill: malformed-skill$" /tmp/skilt-list-skills-missing-description.out || fail "skills verbose list should report missing skill descriptions"
+
+  if "$SCRIPT" list skills -v >/tmp/skilt-list-skills-missing-description-short.out 2>&1; then
+    fail "skills short verbose list should fail when a description is missing"
+  fi
+
+  grep -q "^ERROR missing description for skill: malformed-skill$" /tmp/skilt-list-skills-missing-description-short.out || fail "skills short verbose list should report missing skill descriptions"
 }
 
 test_list_verbose_errors_when_skill_description_is_blank() {
@@ -337,6 +343,12 @@ test_list_verbose_errors_when_skill_description_is_blank() {
   fi
 
   grep -q "^ERROR missing description for skill: blank-skill$" /tmp/skilt-list-skills-blank-description.out || fail "skills verbose list should report blank skill descriptions"
+
+  if "$SCRIPT" list skills -v >/tmp/skilt-list-skills-blank-description-short.out 2>&1; then
+    fail "skills short verbose list should fail when a description is blank"
+  fi
+
+  grep -q "^ERROR missing description for skill: blank-skill$" /tmp/skilt-list-skills-blank-description-short.out || fail "skills short verbose list should report blank skill descriptions"
 }
 
 test_list_verbose_errors_when_module_description_is_missing() {
@@ -349,6 +361,12 @@ test_list_verbose_errors_when_module_description_is_missing() {
   fi
 
   grep -q "^ERROR missing description for module: malformed-module$" /tmp/skilt-list-modules-missing-description.out || fail "modules verbose list should report missing module descriptions"
+
+  if "$SCRIPT" list modules -v >/tmp/skilt-list-modules-missing-description-short.out 2>&1; then
+    fail "modules short verbose list should fail when a description is missing"
+  fi
+
+  grep -q "^ERROR missing description for module: malformed-module$" /tmp/skilt-list-modules-missing-description-short.out || fail "modules short verbose list should report missing module descriptions"
 }
 
 test_list_verbose_errors_when_module_description_row_is_truncated() {
@@ -361,6 +379,12 @@ test_list_verbose_errors_when_module_description_row_is_truncated() {
   fi
 
   grep -q "^ERROR missing description for module: truncated-module$" /tmp/skilt-list-modules-truncated-description.out || fail "modules verbose list should report truncated module descriptions"
+
+  if "$SCRIPT" list modules -v >/tmp/skilt-list-modules-truncated-description-short.out 2>&1; then
+    fail "modules short verbose list should fail when the description column is missing"
+  fi
+
+  grep -q "^ERROR missing description for module: truncated-module$" /tmp/skilt-list-modules-truncated-description-short.out || fail "modules short verbose list should report truncated module descriptions"
 }
 
 test_list_verbose_errors_when_profile_description_is_missing() {
@@ -373,6 +397,12 @@ test_list_verbose_errors_when_profile_description_is_missing() {
   fi
 
   grep -q "^ERROR missing description for profile: malformed-profile$" /tmp/skilt-list-profiles-missing-description.out || fail "profiles verbose list should report missing profile descriptions"
+
+  if "$SCRIPT" list profiles -v >/tmp/skilt-list-profiles-missing-description-short.out 2>&1; then
+    fail "profiles short verbose list should fail when a description is missing"
+  fi
+
+  grep -q "^ERROR missing description for profile: malformed-profile$" /tmp/skilt-list-profiles-missing-description-short.out || fail "profiles short verbose list should report missing profile descriptions"
 }
 
 test_list_verbose_errors_when_profile_description_row_is_truncated() {
@@ -385,6 +415,12 @@ test_list_verbose_errors_when_profile_description_row_is_truncated() {
   fi
 
   grep -q "^ERROR missing description for profile: truncated-profile$" /tmp/skilt-list-profiles-truncated-description.out || fail "profiles verbose list should report truncated profile descriptions"
+
+  if "$SCRIPT" list profiles -v >/tmp/skilt-list-profiles-truncated-description-short.out 2>&1; then
+    fail "profiles short verbose list should fail when the description column is missing"
+  fi
+
+  grep -q "^ERROR missing description for profile: truncated-profile$" /tmp/skilt-list-profiles-truncated-description-short.out || fail "profiles short verbose list should report truncated profile descriptions"
 }
 
 test_doctor_rejects_inconsistent_module_descriptions() {
