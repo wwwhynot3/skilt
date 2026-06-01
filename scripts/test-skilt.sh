@@ -224,9 +224,9 @@ test_list_commands_include_config_entities() {
 test_list_verbose_prints_descriptions() {
   setup_fixture
 
-  "$SCRIPT" list skills -v >/tmp/skilt-list-skills-verbose.out
-  "$SCRIPT" list modules --verbose >/tmp/skilt-list-modules-verbose.out
-  "$SCRIPT" list profiles --verbose >/tmp/skilt-list-profiles-verbose.out
+  "$SCRIPT" list skills --verbose >/tmp/skilt-list-skills-verbose.out
+  "$SCRIPT" list modules -v >/tmp/skilt-list-modules-verbose.out
+  "$SCRIPT" list profiles -v >/tmp/skilt-list-profiles-verbose.out
 
   cat >/tmp/skilt-list-skills-verbose.expected <<'EOF'
 design-html	Create or refine HTML-first interface designs.
@@ -312,6 +312,18 @@ test_list_verbose_errors_when_module_description_is_missing() {
   grep -q "^ERROR missing description for module: malformed-module$" /tmp/skilt-list-modules-missing-description.out || fail "modules verbose list should report missing module descriptions"
 }
 
+test_list_verbose_errors_when_module_description_row_is_truncated() {
+  setup_fixture
+
+  printf 'truncated-module\tinvestigate\n' >>"$TEST_CONFIG/modules.tsv"
+
+  if "$SCRIPT" list modules --verbose >/tmp/skilt-list-modules-truncated-description.out 2>&1; then
+    fail "modules verbose list should fail when the description column is missing"
+  fi
+
+  grep -q "^ERROR missing description for module: truncated-module$" /tmp/skilt-list-modules-truncated-description.out || fail "modules verbose list should report truncated module descriptions"
+}
+
 test_list_verbose_errors_when_profile_description_is_missing() {
   setup_fixture
 
@@ -324,10 +336,22 @@ test_list_verbose_errors_when_profile_description_is_missing() {
   grep -q "^ERROR missing description for profile: malformed-profile$" /tmp/skilt-list-profiles-missing-description.out || fail "profiles verbose list should report missing profile descriptions"
 }
 
+test_list_verbose_errors_when_profile_description_row_is_truncated() {
+  setup_fixture
+
+  printf 'truncated-profile\tcore\n' >>"$TEST_CONFIG/profiles.tsv"
+
+  if "$SCRIPT" list profiles --verbose >/tmp/skilt-list-profiles-truncated-description.out 2>&1; then
+    fail "profiles verbose list should fail when the description column is missing"
+  fi
+
+  grep -q "^ERROR missing description for profile: truncated-profile$" /tmp/skilt-list-profiles-truncated-description.out || fail "profiles verbose list should report truncated profile descriptions"
+}
+
 test_doctor_rejects_inconsistent_module_descriptions() {
   setup_fixture
 
-  printf 'design\tdesign-html\tConflicting module description for review coverage.\n' >>"$TEST_CONFIG/modules.tsv"
+  printf 'design\tship\tConflicting module description for review coverage.\n' >>"$TEST_CONFIG/modules.tsv"
 
   if "$SCRIPT" doctor >/tmp/skilt-doctor-module-description-conflict.out; then
     fail "doctor should fail on inconsistent module descriptions"
@@ -339,7 +363,7 @@ test_doctor_rejects_inconsistent_module_descriptions() {
 test_doctor_rejects_inconsistent_profile_descriptions() {
   setup_fixture
 
-  printf 'backend-indie\tcore\tConflicting profile description for review coverage.\n' >>"$TEST_CONFIG/profiles.tsv"
+  printf 'backend-indie\tdesign\tConflicting profile description for review coverage.\n' >>"$TEST_CONFIG/profiles.tsv"
 
   if "$SCRIPT" doctor >/tmp/skilt-doctor-profile-description-conflict.out; then
     fail "doctor should fail on inconsistent profile descriptions"
@@ -390,7 +414,9 @@ test_list_verbose_rejects_agents
 test_list_verbose_errors_when_skill_description_is_missing
 test_list_verbose_errors_when_skill_description_is_blank
 test_list_verbose_errors_when_module_description_is_missing
+test_list_verbose_errors_when_module_description_row_is_truncated
 test_list_verbose_errors_when_profile_description_is_missing
+test_list_verbose_errors_when_profile_description_row_is_truncated
 test_doctor_rejects_inconsistent_module_descriptions
 test_doctor_rejects_inconsistent_profile_descriptions
 test_count_reports_config_install_and_agent_totals
