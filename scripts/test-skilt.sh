@@ -51,31 +51,31 @@ opencode	~/.config/opencode/skills	~/.config/opencode/skills.disabled/gstack	gst
 EOF
 
   cat >"$TEST_CONFIG/skills.tsv" <<'EOF'
-# skill
-investigate
-design-html
-ios-qa
-office-hours
-ship
+# skill	description
+investigate	Investigate code paths and isolate likely root causes.
+design-html	Create or refine HTML-first interface designs.
+ios-qa	Review iOS flows and QA edge cases.
+office-hours	Generate product-facing guidance for stakeholder discussions.
+ship	Drive release and deployment execution steps.
 EOF
 
   cat >"$TEST_CONFIG/modules.tsv" <<'EOF'
-# module	skill
-core	investigate
-design	design-html
-ios	ios-qa
-product	office-hours
-deploy	ship
+# module	skill	description
+core	investigate	Core debugging and diagnosis workflows.
+design	design-html	Design-oriented skills for UI and review work.
+ios	ios-qa	iOS-focused implementation and QA support.
+product	office-hours	Product planning and stakeholder communication support.
+deploy	ship	Deployment and release execution skills.
 EOF
 
   cat >"$TEST_CONFIG/profiles.tsv" <<'EOF'
-# profile	module
-backend-indie	core
-backend-indie	product
-backend-indie	deploy
-gui-stage	core
-gui-stage	product
-gui-stage	design
+# profile	module	description
+backend-indie	core	Lean backend-focused workflow with debugging, product, and ship support.
+backend-indie	product	Lean backend-focused workflow with debugging, product, and ship support.
+backend-indie	deploy	Lean backend-focused workflow with debugging, product, and ship support.
+gui-stage	core	GUI-building workflow with product and design support.
+gui-stage	product	GUI-building workflow with product and design support.
+gui-stage	design	GUI-building workflow with product and design support.
 EOF
 
   for skill in investigate design-html ios-qa office-hours ship; do
@@ -193,6 +193,28 @@ test_list_commands_include_config_entities() {
   grep -q "^design-html$" /tmp/skilt-list-skills.out || fail "skills list should include design-html"
 }
 
+test_list_verbose_prints_descriptions() {
+  setup_fixture
+
+  "$SCRIPT" list skills --verbose >/tmp/skilt-list-skills-verbose.out
+  "$SCRIPT" list modules --verbose >/tmp/skilt-list-modules-verbose.out
+  "$SCRIPT" list profiles --verbose >/tmp/skilt-list-profiles-verbose.out
+
+  grep -q $'^design-html\tCreate or refine HTML-first interface designs\\.$' /tmp/skilt-list-skills-verbose.out || fail "skills verbose list should include descriptions"
+  grep -q $'^design\tDesign-oriented skills for UI and review work\\.$' /tmp/skilt-list-modules-verbose.out || fail "modules verbose list should include descriptions"
+  grep -q $'^backend-indie\tLean backend-focused workflow with debugging, product, and ship support\\.$' /tmp/skilt-list-profiles-verbose.out || fail "profiles verbose list should include descriptions"
+}
+
+test_list_verbose_rejects_agents() {
+  setup_fixture
+
+  if "$SCRIPT" list agents --verbose >/tmp/skilt-list-agents-verbose.out 2>&1; then
+    fail "agents verbose list should be rejected"
+  fi
+
+  grep -q "^ERROR list --verbose only supports modules profiles skills$" /tmp/skilt-list-agents-verbose.out || fail "agents verbose rejection should explain supported entities"
+}
+
 test_count_reports_config_install_and_agent_totals() {
   setup_fixture
 
@@ -228,6 +250,8 @@ test_module_on_off_uses_explicit_and_implicit_modules
 test_all_on_all_off_and_reset
 test_doctor_validates_config_and_missing_functional_module
 test_list_commands_include_config_entities
+test_list_verbose_prints_descriptions
+test_list_verbose_rejects_agents
 test_count_reports_config_install_and_agent_totals
 test_diff_reports_config_install_and_agent_lists
 
