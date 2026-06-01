@@ -1,53 +1,53 @@
-# module	skill
-planning	autoplan
-performance	benchmark
-model-benchmark	benchmark-models
-web-qa	browse
-deploy	canary
-safety	careful
-multi-agent	claude
-context	context-restore
-context	context-save
-security	cso
-design	design-consultation
-design	design-html
-design	design-review
-design	design-shotgun
-devex	devex-review
-docs	document-generate
-release-docs	document-release
-safety	freeze
-maintenance	gstack-upgrade
-safety	guard
-core-health	health
-core-debug	investigate
-ios	ios-clean
-ios	ios-design-review
-ios	ios-fix
-ios	ios-qa
-ios	ios-sync
-deploy	land-and-deploy
-deploy	landing-report
-memory	learn
-reporting	make-pdf
-product	office-hours
-browser	open-gstack-browser
-multi-agent	pair-agent
-product	plan-ceo-review
-design	plan-design-review
-devex	plan-devex-review
-backend	plan-eng-review
-tuning	plan-tune
-web-qa	qa-only
-qa-full	qa
-reporting	retro
-core-review	review
-browser-data	scrape
-auth-browser	setup-browser-cookies
-deploy	setup-deploy
-gbrain	setup-gbrain
-deploy	ship
-browser-data	skillify
-product	spec
-gbrain	sync-gbrain
-safety	unfreeze
+# module	skill	description
+planning	autoplan	Planning and scoping workflows for structured execution.
+performance	benchmark	Performance measurement and benchmark analysis work.
+model-benchmark	benchmark-models	Cross-model benchmark and comparison workflows.
+web-qa	browse	Browser-based QA and web flow verification.
+deploy	canary	Deployment, rollout, and landing workflows.
+safety	careful	Safety-focused review and change control workflows.
+multi-agent	claude	Multi-agent collaboration and parallel execution workflows.
+context	context-restore	Context capture and restoration workflows.
+context	context-save	Context capture and restoration workflows.
+security	cso	Security review and boundary analysis workflows.
+design	design-consultation	Product, UX, and interface design workflows.
+design	design-html	Product, UX, and interface design workflows.
+design	design-review	Product, UX, and interface design workflows.
+design	design-shotgun	Product, UX, and interface design workflows.
+devex	devex-review	Developer experience review and workflow improvement.
+docs	document-generate	Documentation authoring and release communication workflows.
+release-docs	document-release	Release note preparation and shipment communication workflows.
+safety	freeze	Safety-focused review and change control workflows.
+maintenance	gstack-upgrade	Toolchain maintenance and upgrade workflows.
+safety	guard	Safety-focused review and change control workflows.
+core-health	health	Project health checks and maintenance signal review.
+core-debug	investigate	Systematic debugging and root-cause investigation workflows.
+ios	ios-clean	iOS implementation, review, and QA workflows.
+ios	ios-design-review	iOS implementation, review, and QA workflows.
+ios	ios-fix	iOS implementation, review, and QA workflows.
+ios	ios-qa	iOS implementation, review, and QA workflows.
+ios	ios-sync	iOS implementation, review, and QA workflows.
+deploy	land-and-deploy	Deployment, rollout, and landing workflows.
+deploy	landing-report	Deployment, rollout, and landing workflows.
+memory	learn	Learning capture and project memory workflows.
+reporting	make-pdf	Report and retrospective generation workflows.
+product	office-hours	Product planning and stakeholder communication workflows.
+browser	open-gstack-browser	Browser tooling inspection and session workflows.
+multi-agent	pair-agent	Multi-agent collaboration and parallel execution workflows.
+product	plan-ceo-review	Product planning and stakeholder communication workflows.
+design	plan-design-review	Product, UX, and interface design workflows.
+devex	plan-devex-review	Developer experience review and workflow improvement.
+backend	plan-eng-review	Engineering planning and backend review workflows.
+tuning	plan-tune	Plan refinement and scoping adjustment workflows.
+web-qa	qa-only	Browser-based QA and web flow verification.
+qa-full	qa	Broad QA coverage across the changed surface.
+reporting	retro	Report and retrospective generation workflows.
+core-review	review	Code review and regression detection workflows.
+browser-data	scrape	Web data collection and browser-data workflows.
+auth-browser	setup-browser-cookies	Browser authentication setup workflows.
+deploy	setup-deploy	Deployment, rollout, and landing workflows.
+gbrain	setup-gbrain	Gbrain setup and synchronization workflows.
+deploy	ship	Deployment, rollout, and landing workflows.
+browser-data	skillify	Web data collection and browser-data workflows.
+product	spec	Product planning and stakeholder communication workflows.
+gbrain	sync-gbrain	Gbrain setup and synchronization workflows.
+safety	unfreeze	Safety-focused review and change control workflows.

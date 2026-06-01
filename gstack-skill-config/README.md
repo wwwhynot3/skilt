@@ -99,10 +99,18 @@ Limit an operation to one agent:
 List configured entities:
 
 ```bash
+./skilt list agents|modules|profiles|skills [--verbose]
 ./skilt list agents
 ./skilt list modules
 ./skilt list profiles
 ./skilt list skills
+./skilt list profiles --verbose
+```
+
+Verbose mode prints `name<TAB>description` for `skills`, `modules`, and `profiles`:
+
+```bash
+./skilt list modules --verbose
 ```
 
 Validate the configuration and local install:
@@ -130,23 +138,31 @@ claude  ~/.claude/skills            ~/.claude/skills.disabled/gstack     plain
 
 `skills.tsv` is the full known gstack skill inventory. `doctor` compares it with the local gstack install and reports missing entries.
 
+Schema:
+
+```text
+skill	description
+```
+
 `modules.tsv` maps functional modules to skills:
 
 ```text
-module      skill
-design      design-html
-design      design-review
-ios         ios-qa
+module      skill         description
+design      design-html   Product, UX, and interface design workflows.
+design      design-review Product, UX, and interface design workflows.
+ios         ios-qa        iOS implementation, review, and QA workflows.
 ```
 
 `profiles.tsv` maps roles or project stages to modules:
 
 ```text
-profile         module
-backend-indie   core-debug
-backend-indie   product
-gui-stage       design
+profile         module      description
+backend-indie   core-debug  Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie   product     Lean backend-focused profile with debugging, review, docs, and release support.
+gui-stage       design      GUI-building profile with product, backend, web QA, and design support.
 ```
+
+Repeated `module` or `profile` keys must repeat the exact same description string on every row so `doctor` and `list --verbose` stay deterministic.
 
 ## How It Works
 
@@ -172,6 +188,11 @@ When disabling a skill, `skilt` moves that entry to the agent's disabled directo
 `./skilt doctor` checks:
 
 - `skills.tsv` contains no duplicate skills.
+- `skills.tsv` descriptions are present and non-blank.
+- `modules.tsv` descriptions are present and non-blank.
+- `profiles.tsv` descriptions are present and non-blank.
+- Repeated module rows reuse the same description text.
+- Repeated profile rows reuse the same description text.
 - `modules.tsv` does not reference unknown skills.
 - `profiles.tsv` does not reference unknown modules.
 - Installed gstack skills are present in `skills.tsv`.
@@ -201,15 +222,15 @@ Then check:
 To add a module, edit `modules.tsv`:
 
 ```text
-security-hardening  cso
-security-hardening  review
+security-hardening  cso     Security review and hardening workflows.
+security-hardening  review  Security review and hardening workflows.
 ```
 
 To add a profile, edit `profiles.tsv`:
 
 ```text
-security-pass  security-hardening
-security-pass  core-health
+security-pass  security-hardening  Security-focused release profile with review and health checks.
+security-pass  core-health         Security-focused release profile with review and health checks.
 ```
 
 Then preview:

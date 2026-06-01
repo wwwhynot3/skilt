@@ -1,53 +1,53 @@
-# skill
-autoplan
-benchmark
-benchmark-models
-browse
-canary
-careful
-claude
-context-restore
-context-save
-cso
-design-consultation
-design-html
-design-review
-design-shotgun
-devex-review
-document-generate
-document-release
-freeze
-gstack-upgrade
-guard
-health
-investigate
-ios-clean
-ios-design-review
-ios-fix
-ios-qa
-ios-sync
-land-and-deploy
-landing-report
-learn
-make-pdf
-office-hours
-open-gstack-browser
-pair-agent
-plan-ceo-review
-plan-design-review
-plan-devex-review
-plan-eng-review
-plan-tune
-qa
-qa-only
-retro
-review
-scrape
-setup-browser-cookies
-setup-deploy
-setup-gbrain
-ship
-skillify
-spec
-sync-gbrain
-unfreeze
+# skill	description
+autoplan	Draft execution plans from scoped requirements.
+benchmark	Run focused performance benchmarks and compare results.
+benchmark-models	Compare model behavior, quality, and cost across prompts.
+browse	Inspect web flows and verify browser-visible behavior.
+canary	Perform cautious rollout and post-change canary checks.
+careful	Slow down risky work and surface high-impact failure modes.
+claude	Coordinate Claude-based subagents for parallel implementation work.
+context-restore	Rehydrate saved working context into the current session.
+context-save	Capture the current working context for later continuation.
+cso	Review security-sensitive code and threat boundaries.
+design-consultation	Provide product and UX design consultation for proposed changes.
+design-html	Build or refine HTML-first interface designs.
+design-review	Review UI work for usability, consistency, and polish.
+design-shotgun	Generate multiple contrasting design directions quickly.
+devex-review	Review developer tooling and workflow ergonomics.
+document-generate	Produce user- or team-facing documentation drafts.
+document-release	Prepare release notes and change summaries for shipments.
+freeze	Lock change activity before a risky release or incident window.
+gstack-upgrade	Upgrade the local gstack toolchain to the latest version.
+guard	Check proposed changes for safety and policy regressions.
+health	Inspect project health signals, drift, and maintenance risks.
+investigate	Trace bugs methodically and isolate likely root causes.
+ios-clean	Clean up iOS code paths, structure, or project hygiene issues.
+ios-design-review	Review iOS UI flows for platform fit and polish.
+ios-fix	Fix iOS-specific implementation defects.
+ios-qa	Test iOS flows and edge cases before shipping.
+ios-sync	Align iOS changes across code, assets, and workflow.
+land-and-deploy	Land ready changes and drive deployment steps.
+landing-report	Summarize what landed, where, and with what impact.
+learn	Capture reusable lessons and project knowledge from recent work.
+make-pdf	Generate PDF outputs from structured source material.
+office-hours	Provide product-facing guidance for stakeholder discussions.
+open-gstack-browser	Open and inspect gstack browser tooling or sessions.
+pair-agent	Pair with another agent on an implementation or review task.
+plan-ceo-review	Prepare concise plans for executive or stakeholder review.
+plan-design-review	Prepare design-review-ready plans and discussion points.
+plan-devex-review	Prepare plans for developer-experience review.
+plan-eng-review	Prepare implementation plans for engineering review.
+plan-tune	Refine plans for sharper scope, sequencing, and tradeoffs.
+qa	Run broad end-to-end QA checks across the changed surface.
+qa-only	Run focused QA verification without adding implementation work.
+retro	Capture release or project retrospectives with actionable takeaways.
+review	Review code changes for bugs, regressions, and missing tests.
+scrape	Collect structured data from approved web sources.
+setup-browser-cookies	Prepare browser auth cookies needed for local automation.
+setup-deploy	Prepare deployment prerequisites, credentials, and checks.
+setup-gbrain	Set up gbrain-related tooling or local integration.
+ship	Drive a change through final release and deployment steps.
+skillify	Package raw prompts or workflows into reusable skills.
+spec	Turn rough ideas into concrete product or implementation specs.
+sync-gbrain	Sync gbrain state, configuration, or artifacts.
+unfreeze	Reopen normal change activity after a freeze window.

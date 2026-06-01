@@ -1,43 +1,43 @@
-# profile	module
-backend-indie	core-debug
-backend-indie	core-review
-backend-indie	core-health
-backend-indie	safety
-backend-indie	context
-backend-indie	security
-backend-indie	docs
-backend-indie	product
-backend-indie	backend
-backend-indie	web-qa
-backend-indie	ship
-springboot-work	core-debug
-springboot-work	core-review
-springboot-work	core-health
-springboot-work	safety
-springboot-work	context
-springboot-work	security
-springboot-work	docs
-springboot-work	backend
-idea-stage	product
-idea-stage	backend
-idea-stage	docs
-idea-stage	context
-gui-stage	product
-gui-stage	backend
-gui-stage	web-qa
-gui-stage	design
-gui-stage	docs
-tui-stage	product
-tui-stage	backend
-tui-stage	devex
-tui-stage	docs
-release-stage	core-review
-release-stage	core-health
-release-stage	safety
-release-stage	security
-release-stage	docs
-release-stage	release-docs
-release-stage	web-qa
-release-stage	qa-full
-release-stage	auth-browser
-release-stage	deploy
+# profile	module	description
+backend-indie	core-debug	Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie	core-review	Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie	core-health	Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie	safety	Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie	context	Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie	security	Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie	docs	Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie	product	Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie	backend	Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie	web-qa	Lean backend-focused profile with debugging, review, docs, and release support.
+backend-indie	ship	Lean backend-focused profile with debugging, review, docs, and release support.
+springboot-work	core-debug	Spring Boot delivery profile with backend debugging, review, and docs support.
+springboot-work	core-review	Spring Boot delivery profile with backend debugging, review, and docs support.
+springboot-work	core-health	Spring Boot delivery profile with backend debugging, review, and docs support.
+springboot-work	safety	Spring Boot delivery profile with backend debugging, review, and docs support.
+springboot-work	context	Spring Boot delivery profile with backend debugging, review, and docs support.
+springboot-work	security	Spring Boot delivery profile with backend debugging, review, and docs support.
+springboot-work	docs	Spring Boot delivery profile with backend debugging, review, and docs support.
+springboot-work	backend	Spring Boot delivery profile with backend debugging, review, and docs support.
+idea-stage	product	Early-stage planning profile for shaping ideas into workable specs.
+idea-stage	backend	Early-stage planning profile for shaping ideas into workable specs.
+idea-stage	docs	Early-stage planning profile for shaping ideas into workable specs.
+idea-stage	context	Early-stage planning profile for shaping ideas into workable specs.
+gui-stage	product	GUI-building profile with product, backend, web QA, and design support.
+gui-stage	backend	GUI-building profile with product, backend, web QA, and design support.
+gui-stage	web-qa	GUI-building profile with product, backend, web QA, and design support.
+gui-stage	design	GUI-building profile with product, backend, web QA, and design support.
+gui-stage	docs	GUI-building profile with product, backend, web QA, and design support.
+tui-stage	product	TUI-building profile with product, backend, devex, and docs support.
+tui-stage	backend	TUI-building profile with product, backend, devex, and docs support.
+tui-stage	devex	TUI-building profile with product, backend, devex, and docs support.
+tui-stage	docs	TUI-building profile with product, backend, devex, and docs support.
+release-stage	core-review	Release-readiness profile with review, QA, docs, auth, and deploy support.
+release-stage	core-health	Release-readiness profile with review, QA, docs, auth, and deploy support.
+release-stage	safety	Release-readiness profile with review, QA, docs, auth, and deploy support.
+release-stage	security	Release-readiness profile with review, QA, docs, auth, and deploy support.
+release-stage	docs	Release-readiness profile with review, QA, docs, auth, and deploy support.
+release-stage	release-docs	Release-readiness profile with review, QA, docs, auth, and deploy support.
+release-stage	web-qa	Release-readiness profile with review, QA, docs, auth, and deploy support.
+release-stage	qa-full	Release-readiness profile with review, QA, docs, auth, and deploy support.
+release-stage	auth-browser	Release-readiness profile with review, QA, docs, auth, and deploy support.
+release-stage	deploy	Release-readiness profile with review, QA, docs, auth, and deploy support.
