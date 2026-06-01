@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT="$SCRIPT_DIR/../skilt"
+INSTALL_SCRIPT="$SCRIPT_DIR/install-skilt.sh"
 
 fail() {
   echo "FAIL: $*" >&2
@@ -524,6 +525,50 @@ test_diff_reports_config_install_and_agent_lists() {
   grep -q "^  codex: design-html$" /tmp/skilt-diff.out || fail "diff should list disabled codex skills"
 }
 
+test_install_script_copies_runtime_and_wrapper() {
+  setup_fixture
+
+  local bin_dir="$TEST_HOME/bin"
+  local config_root="$TEST_HOME/config-root"
+
+  "$INSTALL_SCRIPT" --bin-dir "$bin_dir" --config-dir "$config_root" >/tmp/skilt-install.out
+
+  assert_exists "$bin_dir/skilt"
+  assert_exists "$config_root/skilt/skilt"
+  assert_exists "$config_root/skilt/gstack-skill-config/skills.tsv"
+  grep -Fq "export SKILT_CONFIG_DIR=\"$config_root/skilt/gstack-skill-config\"" "$bin_dir/skilt" || fail "wrapper should embed the installed config dir"
+}
+
+test_install_script_installed_wrapper_runs_with_installed_config() {
+  setup_fixture
+
+  local bin_dir="$TEST_HOME/bin"
+  local config_root="$TEST_HOME/config-root"
+
+  "$INSTALL_SCRIPT" --bin-dir "$bin_dir" --config-dir "$config_root" >/tmp/skilt-install-runtime.out
+
+  cp "$TEST_CONFIG/agents.tsv" "$config_root/skilt/gstack-skill-config/agents.tsv"
+  cp "$TEST_CONFIG/skills.tsv" "$config_root/skilt/gstack-skill-config/skills.tsv"
+  cp "$TEST_CONFIG/modules.tsv" "$config_root/skilt/gstack-skill-config/modules.tsv"
+  cp "$TEST_CONFIG/profiles.tsv" "$config_root/skilt/gstack-skill-config/profiles.tsv"
+
+  "$bin_dir/skilt" list profiles --verbose >/tmp/skilt-installed-list.out
+
+  grep -q $'^backend-indie\tLean backend-focused workflow with debugging, product, and ship support\\.$' /tmp/skilt-installed-list.out || fail "installed wrapper should use the installed config bundle"
+}
+
+test_install_script_prompts_for_missing_directories() {
+  setup_fixture
+
+  local bin_dir="$TEST_HOME/prompt-bin"
+  local config_root="$TEST_HOME/prompt-config"
+
+  printf '%s\n%s\n' "$bin_dir" "$config_root" | "$INSTALL_SCRIPT" >/tmp/skilt-install-prompt.out
+
+  assert_exists "$bin_dir/skilt"
+  assert_exists "$config_root/skilt/gstack-skill-config/modules.tsv"
+}
+
 test_dry_run_does_not_move_entries
 test_use_profile_moves_unknown_profile_skills_off_and_keeps_profile_modules
 test_module_on_off_uses_explicit_and_implicit_modules
@@ -548,5 +593,8 @@ test_doctor_rejects_inconsistent_module_descriptions
 test_doctor_rejects_inconsistent_profile_descriptions
 test_count_reports_config_install_and_agent_totals
 test_diff_reports_config_install_and_agent_lists
+test_install_script_copies_runtime_and_wrapper
+test_install_script_installed_wrapper_runs_with_installed_config
+test_install_script_prompts_for_missing_directories
 
 echo "All skilt tests passed"

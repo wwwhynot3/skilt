@@ -47,6 +47,23 @@ chmod +x skilt
 ./skilt status
 ```
 
+### 安装到自定义目录
+
+如果你希望得到一个独立安装的命令，而不是依赖当前仓库路径运行：
+
+```bash
+./scripts/install-skilt.sh --bin-dir ~/scripts --config-dir ~/.config/skilt
+~/scripts/skilt status
+```
+
+安装结果包括：
+
+- `<bin-dir>/skilt` 的包装脚本
+- `<config-dir>/skilt/skilt` 的真实运行脚本
+- `<config-dir>/skilt/gstack-skill-config` 的内置配置目录
+
+如果没有传 `--bin-dir` 或 `--config-dir`，安装脚本会交互提示输入。
+
 ### 可选：加入 PATH
 
 ```bash
@@ -77,6 +94,13 @@ export SKILT_GSTACK_SKILLS_DIR=/path/to/gstack/.agents/skills
 ```bash
 rm -f ~/.local/bin/skilt
 rm -rf /path/to/skilt
+```
+
+如果你使用了安装脚本，还需要删除包装脚本和安装目录：
+
+```bash
+rm -f /path/to/bin/skilt
+rm -rf /path/to/config-root/skilt
 ```
 
 `skilt` 不会卸载或修改 gstack 本体。

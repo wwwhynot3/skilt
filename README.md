@@ -47,6 +47,23 @@ chmod +x skilt
 ./skilt status
 ```
 
+### Install to custom directories
+
+If you want a standalone installed command instead of running from the clone:
+
+```bash
+./scripts/install-skilt.sh --bin-dir ~/scripts --config-dir ~/.config/skilt
+~/scripts/skilt status
+```
+
+This installs:
+
+- a wrapper at `<bin-dir>/skilt`
+- the real runtime at `<config-dir>/skilt/skilt`
+- the bundled config at `<config-dir>/skilt/gstack-skill-config`
+
+If `--bin-dir` or `--config-dir` is omitted, the installer prompts for it.
+
 ### Optional: add to PATH
 
 ```bash
@@ -77,6 +94,13 @@ Then remove the binary link or repository clone:
 ```bash
 rm -f ~/.local/bin/skilt
 rm -rf /path/to/skilt
+```
+
+If you used the installer, remove both the wrapper and installed runtime:
+
+```bash
+rm -f /path/to/bin/skilt
+rm -rf /path/to/config-root/skilt
 ```
 
 `skilt` does not uninstall or modify gstack itself.
