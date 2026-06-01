@@ -179,6 +179,20 @@ test_doctor_validates_config_and_missing_functional_module() {
   grep -q "ERROR modules.tsv references unknown skill: missing-skill" /tmp/skilt-doctor-error.out || fail "doctor should report unknown skill"
 }
 
+test_doctor_rejects_skill_without_description() {
+  setup_fixture
+
+  printf 'malformed-skill\n' >>"$TEST_CONFIG/skills.tsv"
+  mkdir -p "$TEST_GSTACK/gstack-malformed-skill"
+  touch "$TEST_GSTACK/gstack-malformed-skill/SKILL.md"
+
+  if "$SCRIPT" doctor >/tmp/skilt-doctor-skill-description-error.out; then
+    fail "doctor should fail on skills missing descriptions"
+  fi
+
+  grep -q "^ERROR skills.tsv missing description for skill: malformed-skill$" /tmp/skilt-doctor-skill-description-error.out || fail "doctor should report missing skill descriptions"
+}
+
 test_list_commands_include_config_entities() {
   setup_fixture
 
@@ -204,6 +218,8 @@ test_list_verbose_prints_descriptions() {
   grep -q $'^design\tDesign-oriented skills for UI and review work\\.$' /tmp/skilt-list-modules-verbose.out || fail "modules verbose list should include descriptions"
   grep -q $'^design-html\tCreate or refine HTML-first interface designs\\.$' /tmp/skilt-list-modules-verbose.out || fail "modules verbose list should keep implicit self-modules with skill descriptions"
   grep -q $'^backend-indie\tLean backend-focused workflow with debugging, product, and ship support\\.$' /tmp/skilt-list-profiles-verbose.out || fail "profiles verbose list should include descriptions"
+  grep -q $'^gui-stage\tGUI-building workflow with product and design support\\.$' /tmp/skilt-list-profiles-verbose.out || fail "profiles verbose list should include gui-stage"
+  [ "$(wc -l </tmp/skilt-list-profiles-verbose.out)" -eq 2 ] || fail "profiles verbose list should print each logical profile once"
 }
 
 test_list_verbose_rejects_agents() {
@@ -274,6 +290,7 @@ test_use_profile_moves_unknown_profile_skills_off_and_keeps_profile_modules
 test_module_on_off_uses_explicit_and_implicit_modules
 test_all_on_all_off_and_reset
 test_doctor_validates_config_and_missing_functional_module
+test_doctor_rejects_skill_without_description
 test_list_commands_include_config_entities
 test_list_verbose_prints_descriptions
 test_list_verbose_rejects_agents
