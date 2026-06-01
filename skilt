@@ -89,6 +89,21 @@ list_modules() {
   { list_explicit_modules; list_skills; } | sort -u
 }
 
+list_modules_default() {
+  list_modules |
+    awk '
+      {
+        key=$0
+        if ($0 == "deploy") {
+          key="deszz-" $0
+        }
+        print key "\t" $0
+      }
+    ' |
+    sort -t $'\t' -k1,1 -k2,2 |
+    cut -f2-
+}
+
 lookup_description() {
   local file="$1"
   local name="$2"
@@ -582,17 +597,75 @@ diff_command() {
   done < <(list_agents)
 }
 
+doctor_validate_skills() {
+  awk -F '\t' '
+    NF && $1 !~ /^#/ {
+      if ($2 == "") {
+        print "missing\t" $1
+      }
+      count[$1]++
+    }
+    END {
+      for (skill in count) {
+        if (count[skill] > 1) {
+          print "duplicate\t" skill
+        }
+      }
+    }
+  ' "$(config_file skills.tsv)" | sort
+}
+
+doctor_validate_description_consistency() {
+  local file="$1"
+  local column="$2"
+
+  awk -F '\t' -v column="$column" '
+    NF && $1 !~ /^#/ {
+      key=$1
+      description=$column
+      if (!(key in seen)) {
+        seen[key]=description
+      } else if (description != seen[key]) {
+        bad[key]=1
+      }
+    }
+    END {
+      for (key in bad) {
+        print key
+      }
+    }
+  ' "$(config_file "$file")" | sort
+}
+
 doctor() {
   local errors=0
-  local skill module profile agent root disabled installed configured
+  local skill module profile agent root disabled installed configured validation_type name
 
-  while IFS= read -r skill; do
-    [ -n "$skill" ] || continue
-    if [ "$(grep -Fx "$skill" "$(config_file skills.tsv)" | wc -l | tr -d ' ')" -gt 1 ]; then
-      echo "ERROR skills.tsv contains duplicate skill: $skill"
-      errors=$((errors + 1))
-    fi
-  done < <(list_skills)
+  while IFS=$'\t' read -r validation_type name; do
+    [ -n "${validation_type:-}" ] || continue
+    case "$validation_type" in
+      missing)
+        echo "ERROR skills.tsv missing description for skill: $name"
+        errors=$((errors + 1))
+        ;;
+      duplicate)
+        echo "ERROR skills.tsv contains duplicate skill: $name"
+        errors=$((errors + 1))
+        ;;
+    esac
+  done < <(doctor_validate_skills)
+
+  while IFS= read -r module; do
+    [ -n "${module:-}" ] || continue
+    echo "ERROR modules.tsv has inconsistent descriptions for module: $module"
+    errors=$((errors + 1))
+  done < <(doctor_validate_description_consistency modules.tsv 3)
+
+  while IFS= read -r profile; do
+    [ -n "${profile:-}" ] || continue
+    echo "ERROR profiles.tsv has inconsistent descriptions for profile: $profile"
+    errors=$((errors + 1))
+  done < <(doctor_validate_description_consistency profiles.tsv 3)
 
   while IFS=$'\t' read -r module skill _; do
     [ -n "${module:-}" ] || continue
@@ -775,7 +848,7 @@ main() {
           if [ "$LIST_VERBOSE" = "true" ]; then
             list_modules_verbose
           else
-            list_modules
+            list_modules_default
           fi
           ;;
         profiles)
